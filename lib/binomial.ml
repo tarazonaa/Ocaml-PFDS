@@ -41,11 +41,17 @@ module Make (Ord : Set.OrderedType) = struct
         let t, ts = removeMinTree xs in
         if Ord.compare (root x) (root t) <= 0 then (x, xs) else (t, x :: ts)
 
-  let findMin ts =
-    let t, _ = removeMinTree ts in
-    root t
+  let findMin = function
+    | [] ->
+        Error "empty heap"
+    | ts ->
+        let t, _ = removeMinTree ts in
+        Ok (root t)
 
-  let deleteMin ts =
-    let Node (_, x, c), tail = removeMinTree ts in
-    merge (List.rev c) tail
+  let deleteMin = function
+    | [] ->
+        Error "empty heap"
+    | ts ->
+        let Node (_, x, c), tail = removeMinTree ts in
+        Ok (merge (List.rev c) tail)
 end
