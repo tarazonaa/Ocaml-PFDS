@@ -1,12 +1,15 @@
+module IntHeap = PFDS.Binomial.Make (Int)
+
 let merge_empty () =
-  Alcotest.check_raises "Cannot merge empty heap"
-    (Failure "Cannot merge empty heap") (fun () ->
-      ignore (PFDS.Binomial.merge [Node (1, 1, [])] []) )
+  let h = IntHeap.insert 1 [] in
+  let merged = IntHeap.merge h [] in
+  Alcotest.(check int)
+    "Merging empty heap returns the other" 1 (IntHeap.findMin merged)
 
 let insert_into_empty () =
-  let h = PFDS.Binomial.insert 1 [] in
+  let h = IntHeap.insert 1 [] in
   Alcotest.(check bool) "Heap is not empty" true (h <> []) ;
-  Alcotest.(check int) "Min is correct" 1 (PFDS.Binomial.findMin h)
+  Alcotest.(check int) "Min is correct" 1 (IntHeap.findMin h)
 
 let () =
   let open Alcotest in
