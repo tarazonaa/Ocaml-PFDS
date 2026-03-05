@@ -128,6 +128,46 @@ let test_queue_head_empty () =
   Alcotest.check_raises "head of empty raises" (Failure "Empty queue.")
     (fun () -> ignore (IntQueue.head IntQueue.empty) )
 
+module IntDeque = PFDS.Deque.Make (Int)
+
+let test_deque_empty () =
+  Alcotest.(check bool) "empty deque is empty" true
+    (IntDeque.isEmpty IntDeque.empty)
+
+let test_deque_snoc_head () =
+  let q = IntDeque.snoc 1 IntDeque.empty in
+  Alcotest.(check int) "head after snoc" 1 (IntDeque.head q)
+
+let test_deque_cons_head () =
+  let q = IntDeque.snoc 2 IntDeque.empty in
+  let q = IntDeque.cons 1 q in
+  Alcotest.(check int) "head after cons is 1" 1 (IntDeque.head q)
+
+let test_deque_last () =
+  let q = IntDeque.snoc 1 IntDeque.empty in
+  let q = IntDeque.snoc 2 q in
+  Alcotest.(check int) "last is 2" 2 (IntDeque.last q)
+
+let test_deque_init () =
+  let q = IntDeque.snoc 1 IntDeque.empty in
+  let q = IntDeque.snoc 2 q in
+  let q = IntDeque.init q in
+  Alcotest.(check int) "last after init is 1" 1 (IntDeque.last q)
+
+let test_deque_tail () =
+  let q = IntDeque.snoc 1 IntDeque.empty in
+  let q = IntDeque.snoc 2 q in
+  let q = IntDeque.tail q in
+  Alcotest.(check int) "head after tail is 2" 2 (IntDeque.head q)
+
+let test_deque_head_empty () =
+  Alcotest.check_raises "head of empty raises" (Failure "Deque is empty")
+    (fun () -> ignore (IntDeque.head IntDeque.empty))
+
+let test_deque_last_empty () =
+  Alcotest.check_raises "last of empty raises" (Failure "Deque is empty")
+    (fun () -> ignore (IntDeque.last IntDeque.empty))
+
 let () =
   Alcotest.run "PFDS"
     [ ( "Binomial Heaps"
@@ -145,6 +185,16 @@ let () =
         ; Alcotest.test_case "tail" `Quick test_queue_tail
         ; Alcotest.test_case "fifo order" `Quick test_queue_fifo
         ; Alcotest.test_case "head of empty raises" `Quick test_queue_head_empty
+        ] )
+    ; ( "Deque"
+      , [ Alcotest.test_case "empty" `Quick test_deque_empty
+        ; Alcotest.test_case "snoc and head" `Quick test_deque_snoc_head
+        ; Alcotest.test_case "cons and head" `Quick test_deque_cons_head
+        ; Alcotest.test_case "last" `Quick test_deque_last
+        ; Alcotest.test_case "init" `Quick test_deque_init
+        ; Alcotest.test_case "tail" `Quick test_deque_tail
+        ; Alcotest.test_case "head of empty raises" `Quick test_deque_head_empty
+        ; Alcotest.test_case "last of empty raises" `Quick test_deque_last_empty
         ] )
     ; ( "Streams"
       , [ Alcotest.test_case "append" `Quick test_stream_append
