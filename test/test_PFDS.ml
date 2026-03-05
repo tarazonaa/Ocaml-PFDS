@@ -99,6 +99,35 @@ let test_stream_reverse () =
     "reverse" [3; 2; 1]
     (to_list (IntStream.reverse s))
 
+module IntQueue = PFDS.Batched.Make (Int)
+
+let test_queue_empty () =
+  Alcotest.(check bool)
+    "empty queue is empty" true
+    (IntQueue.isEmpty IntQueue.empty)
+
+let test_queue_snoc_head () =
+  let q = IntQueue.snoc 1 IntQueue.empty in
+  Alcotest.(check int) "head after snoc is 1" 1 (IntQueue.head q)
+
+let test_queue_tail () =
+  let q = IntQueue.snoc 1 IntQueue.empty in
+  let q = IntQueue.snoc 2 q in
+  let q = IntQueue.tail q in
+  Alcotest.(check int) "head after tail is 2" 2 (IntQueue.head q)
+
+let test_queue_fifo () =
+  let q = List.fold_left (fun acc x -> IntQueue.snoc x acc) IntQueue.empty [1; 2; 3; 4; 5] in
+  let rec to_list q =
+    if IntQueue.isEmpty q then []
+    else IntQueue.head q :: to_list (IntQueue.tail q)
+  in
+  Alcotest.(check (list int)) "fifo order" [1; 2; 3; 4; 5] (to_list q)
+
+let test_queue_head_empty () =
+  Alcotest.check_raises "head of empty raises" (Failure "Empty queue.")
+    (fun () -> ignore (IntQueue.head IntQueue.empty) )
+
 let () =
   Alcotest.run "PFDS"
     [ ( "Binomial Heaps"
@@ -110,6 +139,13 @@ let () =
         ; Alcotest.test_case "member not found" `Quick test_member_not_found
         ; Alcotest.test_case "multiple inserts" `Quick test_multiple_inserts
         ; Alcotest.test_case "root is black" `Quick test_root_is_black ] )
+    ; ( "Batched Queue"
+      , [ Alcotest.test_case "empty" `Quick test_queue_empty
+        ; Alcotest.test_case "snoc and head" `Quick test_queue_snoc_head
+        ; Alcotest.test_case "tail" `Quick test_queue_tail
+        ; Alcotest.test_case "fifo order" `Quick test_queue_fifo
+        ; Alcotest.test_case "head of empty raises" `Quick test_queue_head_empty
+        ] )
     ; ( "Streams"
       , [ Alcotest.test_case "append" `Quick test_stream_append
         ; Alcotest.test_case "take" `Quick test_stream_take
