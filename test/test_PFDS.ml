@@ -168,6 +168,37 @@ let test_deque_last_empty () =
   Alcotest.check_raises "last of empty raises" (Failure "Deque is empty")
     (fun () -> ignore (IntDeque.last IntDeque.empty))
 
+module IntSplay = PFDS.Splay.Make (Int)
+
+let splay_of_list lst =
+  List.fold_left (fun t x -> IntSplay.insert x t) IntSplay.empty lst
+
+let rec splay_to_list t =
+  if t = IntSplay.empty then []
+  else
+    let x = IntSplay.findMin t in
+    x :: splay_to_list (IntSplay.deleteMin t)
+
+let test_splay_insert () =
+  let t = splay_of_list [3; 1; 2] in
+  Alcotest.(check int) "findMin after inserts" 1 (IntSplay.findMin t)
+
+let test_splay_sorted () =
+  let t = splay_of_list [5; 3; 1; 4; 2] in
+  Alcotest.(check (list int)) "elements in sorted order" [1; 2; 3; 4; 5]
+    (splay_to_list t)
+
+let test_splay_delete_min () =
+  let t = splay_of_list [3; 1; 2] in
+  let t = IntSplay.deleteMin t in
+  Alcotest.(check int) "findMin after deleteMin" 2 (IntSplay.findMin t)
+
+let test_splay_partition () =
+  let t = splay_of_list [1; 2; 3; 4; 5] in
+  let small, big = IntSplay.partition 3 t in
+  Alcotest.(check int) "max of small <= 3" 3 (IntSplay.findMin (IntSplay.deleteMin (IntSplay.deleteMin small)));
+  Alcotest.(check int) "min of big > 3" 4 (IntSplay.findMin big)
+
 let () =
   Alcotest.run "PFDS"
     [ ( "Binomial Heaps"
@@ -195,6 +226,12 @@ let () =
         ; Alcotest.test_case "tail" `Quick test_deque_tail
         ; Alcotest.test_case "head of empty raises" `Quick test_deque_head_empty
         ; Alcotest.test_case "last of empty raises" `Quick test_deque_last_empty
+        ] )
+    ; ( "Splay Tree"
+      , [ Alcotest.test_case "insert findMin" `Quick test_splay_insert
+        ; Alcotest.test_case "sorted order" `Quick test_splay_sorted
+        ; Alcotest.test_case "deleteMin" `Quick test_splay_delete_min
+        ; Alcotest.test_case "partition" `Quick test_splay_partition
         ] )
     ; ( "Streams"
       , [ Alcotest.test_case "append" `Quick test_stream_append
