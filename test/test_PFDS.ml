@@ -168,6 +168,42 @@ let test_deque_last_empty () =
   Alcotest.check_raises "last of empty raises" (Failure "Deque is empty")
     (fun () -> ignore (IntDeque.last IntDeque.empty))
 
+module IntBankers = PFDS.Bankers.Make (Int)
+
+let test_bankers_empty () =
+  Alcotest.(check bool)
+    "empty banker's queue is empty" true
+    (IntBankers.isEmpty IntBankers.empty)
+
+let test_bankers_snoc_head () =
+  let q = IntBankers.snoc 1 IntBankers.empty in
+  Alcotest.(check int) "head after snoc is 1" 1 (IntBankers.head q)
+
+let test_bankers_tail () =
+  let q = IntBankers.snoc 1 IntBankers.empty in
+  let q = IntBankers.snoc 2 q in
+  let q = IntBankers.tail q in
+  Alcotest.(check int) "head after tail is 2" 2 (IntBankers.head q)
+
+let test_bankers_fifo () =
+  let q = List.fold_left (fun acc x -> IntBankers.snoc x acc) IntBankers.empty [1; 2; 3; 4; 5] in
+  let rec to_list q =
+    if IntBankers.isEmpty q then []
+    else IntBankers.head q :: to_list (IntBankers.tail q)
+  in
+  Alcotest.(check (list int)) "fifo order" [1; 2; 3; 4; 5] (to_list q)
+
+let test_bankers_head_empty () =
+  Alcotest.check_raises "head of empty raises" (Failure "Queue is empty")
+    (fun () -> ignore (IntBankers.head IntBankers.empty))
+
+let test_bankers_rebalance () =
+  (* Force multiple rebalances by alternating snoc/tail *)
+  let q = List.fold_left (fun acc x -> IntBankers.snoc x acc) IntBankers.empty [1;2;3;4;5;6;7;8] in
+  let q = IntBankers.tail (IntBankers.tail q) in
+  let q = IntBankers.snoc 9 (IntBankers.snoc 10 q) in
+  Alcotest.(check int) "head after rebalance is 3" 3 (IntBankers.head q)
+
 module IntSplay = PFDS.Splay.Make (Int)
 
 let splay_of_list lst =
@@ -232,6 +268,14 @@ let () =
         ; Alcotest.test_case "sorted order" `Quick test_splay_sorted
         ; Alcotest.test_case "deleteMin" `Quick test_splay_delete_min
         ; Alcotest.test_case "partition" `Quick test_splay_partition
+        ] )
+    ; ( "Banker's Queue"
+      , [ Alcotest.test_case "empty" `Quick test_bankers_empty
+        ; Alcotest.test_case "snoc and head" `Quick test_bankers_snoc_head
+        ; Alcotest.test_case "tail" `Quick test_bankers_tail
+        ; Alcotest.test_case "fifo order" `Quick test_bankers_fifo
+        ; Alcotest.test_case "head of empty raises" `Quick test_bankers_head_empty
+        ; Alcotest.test_case "rebalance" `Quick test_bankers_rebalance
         ] )
     ; ( "Streams"
       , [ Alcotest.test_case "append" `Quick test_stream_append
