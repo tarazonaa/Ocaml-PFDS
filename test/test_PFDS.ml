@@ -235,6 +235,54 @@ let test_splay_partition () =
   Alcotest.(check int) "max of small <= 3" 3 (IntSplay.findMin (IntSplay.deleteMin (IntSplay.deleteMin small)));
   Alcotest.(check int) "min of big > 3" 4 (IntSplay.findMin big)
 
+module IntRealtime = PFDS.Realtime.Make (Int)
+
+let test_realtime_empty () =
+  Alcotest.(check bool)
+    "empty realtime queue is empty" true
+    (IntRealtime.isEmpty IntRealtime.empty)
+
+let test_realtime_snoc_head () =
+  let q = IntRealtime.snoc 1 IntRealtime.empty in
+  Alcotest.(check int) "head after snoc is 1" 1 (IntRealtime.head q)
+
+let test_realtime_tail () =
+  let q = IntRealtime.snoc 1 IntRealtime.empty in
+  let q = IntRealtime.snoc 2 q in
+  let q = IntRealtime.tail q in
+  Alcotest.(check int) "head after tail is 2" 2 (IntRealtime.head q)
+
+let test_realtime_fifo () =
+  let q =
+    List.fold_left
+      (fun acc x -> IntRealtime.snoc x acc)
+      IntRealtime.empty
+      [1; 2; 3; 4; 5]
+  in
+  let rec to_list q =
+    if IntRealtime.isEmpty q then []
+    else IntRealtime.head q :: to_list (IntRealtime.tail q)
+  in
+  Alcotest.(check (list int)) "fifo order" [1; 2; 3; 4; 5] (to_list q)
+
+let test_realtime_head_empty () =
+  try
+    ignore (IntRealtime.head IntRealtime.empty) ;
+    Alcotest.fail "expected exception"
+  with Assert_failure _ -> ()
+
+let test_realtime_rotation () =
+  (* force multiple rotations by building up rear then draining *)
+  let q =
+    List.fold_left
+      (fun acc x -> IntRealtime.snoc x acc)
+      IntRealtime.empty
+      [1; 2; 3; 4; 5; 6; 7; 8]
+  in
+  let q = IntRealtime.tail (IntRealtime.tail q) in
+  let q = IntRealtime.snoc 9 (IntRealtime.snoc 10 q) in
+  Alcotest.(check int) "head after rotation is 3" 3 (IntRealtime.head q)
+
 let () =
   Alcotest.run "PFDS"
     [ ( "Binomial Heaps"
@@ -281,4 +329,12 @@ let () =
       , [ Alcotest.test_case "append" `Quick test_stream_append
         ; Alcotest.test_case "take" `Quick test_stream_take
         ; Alcotest.test_case "drop" `Quick test_stream_drop
-        ; Alcotest.test_case "reverse" `Quick test_stream_reverse ] ) ]
+        ; Alcotest.test_case "reverse" `Quick test_stream_reverse ] )
+    ; ( "Realtime Queue"
+      , [ Alcotest.test_case "empty" `Quick test_realtime_empty
+        ; Alcotest.test_case "snoc and head" `Quick test_realtime_snoc_head
+        ; Alcotest.test_case "tail" `Quick test_realtime_tail
+        ; Alcotest.test_case "fifo order" `Quick test_realtime_fifo
+        ; Alcotest.test_case "head of empty raises" `Quick test_realtime_head_empty
+        ; Alcotest.test_case "rotation" `Quick test_realtime_rotation
+        ] ) ]
