@@ -283,6 +283,35 @@ let test_realtime_rotation () =
   let q = IntRealtime.snoc 9 (IntRealtime.snoc 10 q) in
   Alcotest.(check int) "head after rotation is 3" 3 (IntRealtime.head q)
 
+let test_delete_empty () =
+  Alcotest.(check bool)
+    "delete from empty is error" true
+    (Result.is_error (IntRB.delete 1 (IntRB.empty ())))
+
+let test_delete_existing () =
+  let h = IntRB.empty ()
+    |> insert_exn (1, false)
+    |> insert_exn (2, false)
+    |> insert_exn (3, false)
+  in
+  Alcotest.(check bool) "delete existing is ok" true
+    (Result.is_ok (IntRB.delete 2 h))
+
+let test_delete_tombstones () =
+  (* deleted element is still found by member until rebuild *)
+  let h = IntRB.empty ()
+    |> insert_exn (1, false)
+    |> insert_exn (2, false)
+  in
+  let h = match IntRB.delete 1 h with Ok t -> t | Error e -> Alcotest.failf "%s" e in
+  Alcotest.(check bool) "tombstoned element still visible to member" true
+    (Result.is_ok (IntRB.member 1 h))
+
+let test_delete_nonexistent () =
+  let h = IntRB.empty () |> insert_exn (1, false) in
+  Alcotest.(check bool) "delete non-existent is ok (no-op)" true
+    (Result.is_ok (IntRB.delete 99 h))
+
 let () =
   Alcotest.run "PFDS"
     [ ( "Binomial Heaps"
@@ -293,7 +322,12 @@ let () =
         ; Alcotest.test_case "insert and member" `Quick test_insert_member
         ; Alcotest.test_case "member not found" `Quick test_member_not_found
         ; Alcotest.test_case "multiple inserts" `Quick test_multiple_inserts
-        ; Alcotest.test_case "root is black" `Quick test_root_is_black ] )
+        ; Alcotest.test_case "root is black" `Quick test_root_is_black
+        ; Alcotest.test_case "delete from empty" `Quick test_delete_empty
+        ; Alcotest.test_case "delete existing" `Quick test_delete_existing
+        ; Alcotest.test_case "delete tombstones" `Quick test_delete_tombstones
+        ; Alcotest.test_case "delete nonexistent" `Quick test_delete_nonexistent
+        ] )
     ; ( "Batched Queue"
       , [ Alcotest.test_case "empty" `Quick test_queue_empty
         ; Alcotest.test_case "snoc and head" `Quick test_queue_snoc_head
